@@ -1,28 +1,27 @@
 from fastapi import FastAPI
 from models import Customer, CustomerCreate, Transaction, Invoice
-from db import SessionDep
+from db import SessionDep, create_all_tables
+from sqlmodel import select
+import uuid
 
-app = FastAPI()
+app = FastAPI(lifespan=create_all_tables)
 
 @app.get("/")
 async def root():
     return {"message": "Hello World"}
 
-current_id: int = 0
-
-db_customers: list[Customer] = []
-
 @app.post("/customers", response_model=Customer)
 async def create_customer(customer: CustomerCreate, session: SessionDep):
     customer_result = Customer.model_validate(customer.model_dump())
-    # Asumiendo que sea en la base de datos
-    customer_result.id = len(db_customers)
-    db_customers.append(customer_result)
+    customer_result.id = uuid.uuid4()
+    session.add(customer_result)
+    session.commit()
+    session.refresh(customer_result)
     return customer_result
 
 @app.get("/customers", response_model=list[Customer])
-async def get_customers():
-    return db_customers
+async def get_customers(session: SessionDep):
+    return session.exec(select(Customer)).all()
 
 @app.post("/transactions")
 async def create_transaction(transaction: Transaction):

@@ -1,12 +1,12 @@
 from pydantic import BaseModel
-from sqlmodel import SQLModel
-
+from sqlmodel import SQLModel, Field
+import uuid
 
 class CustomerBase(SQLModel):
-    name: str
-    description: str | None
-    email: str
-    age: int
+    name: str = Field(default=None)
+    description: str | None = Field(default=None)
+    email: str = Field(default=None)
+    age: int = Field(default=None)
 
 
 class CustomerCreate(CustomerBase):
@@ -14,21 +14,21 @@ class CustomerCreate(CustomerBase):
 
 
 class Customer(CustomerBase, table=True):
-    id: int | None = None
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
 
 
 class Transaction(BaseModel):
-    id: int
+    id: uuid.UUID = Field(default_factory=uuid.uuid4)
     ammount: int
     description: str
 
 
 class Invoice(BaseModel):
-    id: int
+    id: uuid.UUID = Field(default_factory=uuid.uuid4)
     customer: Customer
     transactions: list[Transaction]
     total: int
 
     @property
-    def ammount_total(self):
-        return sum(transaction.ammount for transaction in self.transactions)
+    def amount_total(self):
+        return sum(transaction.amount for transaction in self.transactions)
