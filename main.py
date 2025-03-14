@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from models import Customer, CustomerCreate, Transaction, Invoice
-
+from db import SessionDep
 
 app = FastAPI()
 
@@ -13,7 +13,7 @@ current_id: int = 0
 db_customers: list[Customer] = []
 
 @app.post("/customers", response_model=Customer)
-async def create_customer(customer: CustomerCreate):
+async def create_customer(customer: CustomerCreate, session: SessionDep):
     customer_result = Customer.model_validate(customer.model_dump())
     # Asumiendo que sea en la base de datos
     customer_result.id = len(db_customers)
