@@ -8,10 +8,11 @@ class CustomerBase(SQLModel):
     email: str = Field(default=None)
     age: int = Field(default=None)
 
-
 class CustomerCreate(CustomerBase):
     pass
 
+class CustomerUpdate(CustomerBase):
+    pass
 
 class Customer(CustomerBase, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
