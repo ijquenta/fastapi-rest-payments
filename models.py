@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from sqlmodel import SQLModel, Field
+from sqlmodel import SQLModel, Field, Relationship
 import uuid
 
 class CustomerBase(SQLModel):
@@ -16,14 +16,19 @@ class CustomerUpdate(CustomerBase):
 
 class Customer(CustomerBase, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    transactions: list["Transaction"] = Relationship(back_populates="customer")
 
-
-class Transaction(BaseModel):
-    id: uuid.UUID = Field(default_factory=uuid.uuid4)
+class TransactionBase(SQLModel):
     ammount: int
     description: str
 
+class Transaction(TransactionBase, table=True):
+    id: uuid.UUID | None = Field(default_factory=uuid.uuid4, primary_key=True)
+    customer_id: uuid.UUID = Field(default=None, foreign_key="customer.id")
+    customer: Customer = Relationship(back_populates="transactions")
 
+class TransactionCreate(TransactionBase):
+    customer_id: uuid.UUID = Field(default=None, foreign_key="customer.id")
 class Invoice(BaseModel):
     id: uuid.UUID = Field(default_factory=uuid.uuid4)
     customer: Customer
