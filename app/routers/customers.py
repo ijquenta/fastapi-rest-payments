@@ -1,9 +1,9 @@
-from fastapi import APIRouter, status, HTTPException
+from fastapi import APIRouter, status, HTTPException, Query
 import uuid
 
 from sqlmodel import select
 
-from models import Customer, CustomerCreate, CustomerUpdate, Plan, CustomerPlan
+from models import Customer, CustomerCreate, CustomerUpdate, Plan, CustomerPlan, StatusEnum
 from db import SessionDep
 
 router = APIRouter(tags=['customers'])
@@ -50,7 +50,9 @@ async def get_customers(session: SessionDep):
     return session.exec(select(Customer)).all()
 
 @router.get("/customers/{customer_id}/plans/{plan_id}")
-async def subscribe_customer_to_plan(customer_id: uuid.UUID, plan_id: uuid.UUID, session: SessionDep):
+async def subscribe_customer_to_plan(
+        customer_id: uuid.UUID, plan_id: uuid.UUID, session: SessionDep, plan_status: StatusEnum = Query()
+):
     customer_db = session.get(Customer, customer_id)
     plan_db = session.get(Plan, plan_id)
 
@@ -60,14 +62,15 @@ async def subscribe_customer_to_plan(customer_id: uuid.UUID, plan_id: uuid.UUID,
             detail="The customer or plan doesn't exist"
         )
 
-    customer_plan_db = CustomerPlan(plan_id=plan_db.id, customer_id=customer_db.id)
+    customer_plan_db = CustomerPlan(plan_id=plan_db.id, customer_id=customer_db.id, status=plan_status)
     session.add(customer_plan_db)
     session.commit()
     session.refresh(customer_plan_db)
     return customer_plan_db
 
 @router.get("/customers/{customer_id}/plans")
-async def subscribe_customer_to_plan(customer_id: uuid.UUID, session: SessionDep):
+async def subscribe_customer_to_plan(customer_id: uuid.UUID, session: SessionDep, plan_status: StatusEnum = Query()):
+
     customer_db = session.get(Customer, customer_id)
 
     if not customer_db:
@@ -75,4 +78,12 @@ async def subscribe_customer_to_plan(customer_id: uuid.UUID, session: SessionDep
             status_code=status.HTTP_404_NOT_FOUND,
         )
 
-    return customer_db.plans
+    query = (
+        select(CustomerPlan)
+        .where(CustomerPlan.customer_id == customer_db.id)
+        .where(CustomerPlan.status == plan_status)
+    )
+
+    plans = session.exec(query).all()
+
+    return plans
